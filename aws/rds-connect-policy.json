@@ -1,0 +1,12 @@
+{
+  "_comment": "The ONLY permission attached to that role. Not rds:* — not even rds-db:connect on '*'. The resource ARN pins both the database instance (by its immutable resource id, not its hostname) and the single database user the frontend is allowed to be. This role can do exactly one thing in the entire AWS account: mint connection tokens for a least-privilege Postgres user.",
+
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "rds-db:connect",
+      "Resource": "arn:aws:rds-db:<REGION>:<AWS_ACCOUNT_ID>:dbuser:<DB_RESOURCE_ID>/<DB_USER>"
+    }
+  ]
+}

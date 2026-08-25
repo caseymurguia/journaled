@@ -1,0 +1,20 @@
+{
+  "_comment": "Trust policy for the role the Vercel frontend assumes. The two StringEquals conditions are the whole security model: aud proves the token was minted for this AWS account's provider, and sub pins it to ONE project in ONE environment. A preview deployment presents a genuine, correctly-signed token whose sub ends in ':preview' and is refused — preview builds losing database access is the intended posture, not a bug.",
+
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::<AWS_ACCOUNT_ID>:oidc-provider/oidc.vercel.com/<VERCEL_TEAM>"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "oidc.vercel.com/<VERCEL_TEAM>:aud": "https://vercel.com/<VERCEL_TEAM>",
+          "oidc.vercel.com/<VERCEL_TEAM>:sub": "owner:<VERCEL_TEAM>:project:<VERCEL_PROJECT>:environment:production"
+        }
+      }
+    }
+  ]
+}

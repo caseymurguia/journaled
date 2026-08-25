@@ -19,6 +19,13 @@ Built solo over roughly two months: a Next.js frontend on Vercel, 17 AWS Lambda 
 - [Deeper write-ups](#deeper-write-ups)
 - [Decisions I reversed or refused](#decisions-i-reversed-or-refused)
 
+```
+├── README.md              you are here
+├── docs/                  architecture · security · prompt system
+├── aws/                   IAM policies and the reasoning behind them
+└── src/                   four files that carry the interesting decisions
+```
+
 ---
 
 ## What it does
@@ -95,7 +102,7 @@ Two decisions worth defending:
 - **Explicit mode, never inferred.** `DB_AUTH_MODE` must be `static` or `iam`; anything else throws. It would have been easy to "fall back to the password if IAM fails" — and that fallback would quietly defeat the entire point on the day it mattered.
 - **Production-only trust.** The role's trust policy pins the token subject to `environment:production`. Preview deployments carry genuine, correctly-signed tokens and are still refused, because their subject ends in `:preview`. Preview builds losing database access is the correct posture, not a bug.
 
-Full file: [`src/db.ts`](src/db.ts) · Write-up: [`docs/security.md`](docs/security.md)
+Full file: [`src/db.ts`](src/db.ts) · Policies: [`aws/`](aws/) · Write-up: [`docs/security.md`](docs/security.md)
 
 ### 2. A rate limiter that survives concurrency and serverless
 
@@ -152,6 +159,8 @@ That unlocked a failure mode nobody would guess: at scale the model began hittin
 | [`src/proxy.ts`](src/proxy.ts) | The trust boundary: the internal key never reaches a browser, and a per-user HMAC binds identity to it |
 | [`src/limits.js`](src/limits.js) | Race-proof, tier-aware rate limiting on a shared database ledger |
 | [`src/retention-sweep.js`](src/retention-sweep.js) | Scheduled data pruning: batched deletes, timeout-aware, safe under retry |
+| [`aws/oidc-trust-policy.json`](aws/oidc-trust-policy.json) | The two conditions that decide which deployment may become a database client |
+| [`aws/rds-connect-policy.json`](aws/rds-connect-policy.json) | The role's entire permission set — one action, one user, one instance |
 
 Identifiers (AWS account numbers, hostnames, user IDs) are replaced with placeholders. Everything else is the code as it runs.
 
@@ -162,6 +171,7 @@ Identifiers (AWS account numbers, hostnames, user IDs) are replaced with placeho
 - [**Architecture**](docs/architecture.md) — request flow, data model, why the boundaries sit where they do
 - [**Security**](docs/security.md) — the arc from an open port and a password in shell history to token-only auth with a live-fire-tested intrusion alarm
 - [**Prompt system**](docs/prompt-system.md) — versioning, evaluation method, the Spanish fork, and the failures worth documenting
+- [**AWS configuration**](aws/README.md) — the federated-access setup in order, the `rds_iam` grant that makes passwords impossible, and the CloudWatch filter that watches an internet-facing database
 
 ---
 
