@@ -1,4 +1,4 @@
-# The prompt system
+# The Prompt System
 
 Three jobs, one shared foundation, and a rule that governs all of it: **the model may never invent work.**
 
@@ -36,7 +36,7 @@ Every generated summary is stamped with its version and stored in `original_summ
 
 `daily` is versioned per language because the prompts forked (below) and now evolve independently — two prompts producing two populations of output, which must be labelled as two or the comparison is quietly ruined.
 
-## How changes were evaluated
+## How Changes Were Evaluated
 
 Prompt changes shipped through a loop that ended up mattering more than any individual rule:
 
@@ -48,7 +48,7 @@ The sample size was set by failure: N=3 got burned twice by ordinary generation 
 
 Every prompt change goes through the second-model review before deploy — a practice adopted after three changes shipped without it mid-iteration and two of them carried real defects.
 
-## The Spanish fork
+## The Spanish Fork
 
 The most interesting failure in the project.
 
@@ -60,13 +60,13 @@ The fix was not translation. Translating the rules would have carried the same b
 
 Language selection is a **wordlist-and-accent heuristic in code**, not a model call — deterministic, testable offline, free, and biased toward English when ambiguous. One less nondeterministic hop in the pipeline.
 
-## The digest doctrine
+## The Digest Doctrine
 
 The most common failure in daily summaries wasn't fabrication — it was the model restating the entries table as prose. Every summary already ships above a table of the entries; a paragraph that lists the same items in sentence form adds length and no information.
 
 The governing rule became: **the prose is a summary, not a second list.** The table owns the inventory. The prose weaves — but only through relationships the entries actually support. An early draft of that rule taught the opposite by accident: its example wove two independent tasks into a causal sequence, which taught the model to invent connective tissue. The corrected version says it outright: *let independent work stand as independent.*
 
-## The root cause worth remembering
+## The Root Cause Worth Remembering
 
 The most stubborn defect in the whole system: daily summaries kept narrating **how long things took** — "the bulk of the morning went to…" — despite three separate rules forbidding exactly that. Durations belong to the table, never the prose, because a duration in narrative form is one step from a proportion the data can't support.
 
@@ -74,7 +74,7 @@ The cause wasn't a weak rule. It was a **positive example inside `CORE`** — a 
 
 The generalizable lesson: **your examples are stronger than your instructions.** Audit them against your own bans.
 
-## An incident
+## An Incident
 
 A prompt edit removed a region of the file — and swallowed the function that assembled the user message, which happened to sit between the two deletion markers. Every range report threw `user is not defined` for about fifteen minutes.
 
@@ -82,7 +82,7 @@ A prompt edit removed a region of the file — and swallowed the function that a
 
 Standing practice since: prompt files are verified by **executing the real functions against a stubbed fetch** before deploy, and any region deletion asserts what the cut does *not* contain.
 
-## Things the prompts refuse to do
+## Things the Prompts Refuse to Do
 
 - **No durations in prose.** The daily prompt doesn't even receive them; the range prompt receives pre-computed totals and may quote at most one, exactly as supplied — never itemized, never converted into a fraction.
 - **No verdicts.** The model doesn't grade the day, call a session "productive," or rank what mattered most.

@@ -1,8 +1,8 @@
-# AWS configuration
+# AWS Configuration
 
 The infrastructure was built by hand and verified before anything was codified — deliberately, so that the Terraform written later imports resources whose behavior is already understood. What follows is the configuration that carries the interesting decisions, with identifiers replaced by placeholders.
 
-## Federated database access
+## Federated Database Access
 
 Two files, and between them there is no long-lived database credential anywhere in the system.
 
@@ -23,7 +23,7 @@ Setup order matters, because each step is inert without the one before it:
 
 > **A failure worth documenting.** The first staged run failed with `AccessDenied: Not authorized to perform sts:AssumeRoleWithWebIdentity`. Provider, trust policy, and permission were all correct — the **role name had a typo**. STS deliberately returns the same error for a role that doesn't exist as for one that refuses you, so you can't enumerate roles by probing. If you hit that error, diff the role ARN character by character *before* re-reading your trust conditions. IAM roles can't be renamed; recreate and delete.
 
-## The database user
+## The Database User
 
 The frontend and the Lambda functions both connect as the same least-privilege Postgres user, which holds `GRANT rds_iam`. That grant is doing more work than it looks like:
 
@@ -35,7 +35,7 @@ It makes password authentication **impossible** for that user — not discourage
 
 The administrative account still has a password, but nothing at runtime uses it. It exists for break-glass psql sessions only.
 
-## Watching database authentication
+## Watching Database Authentication
 
 Functions run outside the VPC so they can reach Secrets Manager and the model API without a NAT gateway, which means their egress addresses are unstable shared space with no narrow range to allowlist. Private networking is a real cost, so it's a triggered upgrade — and in the meantime, authentication failures are monitored.
 
@@ -54,7 +54,7 @@ Two details that took thought:
 
 **The threshold is tuned so noise doesn't cry wolf and patterns can't hide.** A stray failure shouldn't page anyone; anything systematic should. The whole pipe was verified end to end with deliberate bad logins — log line to filter to metric to alarm to inbox — because an alarm nobody has ever seen fire is a hypothesis, not a control.
 
-## Scheduled maintenance
+## Scheduled Maintenance
 
 An EventBridge rule invokes the retention sweep daily at 05:30 UTC, chosen to sit after the RDS backup window rather than during it.
 
@@ -62,6 +62,6 @@ The function is created with a **900-second timeout**, which is the single most 
 
 See [`../src/retention-sweep.js`](../src/retention-sweep.js) for how it stays inside that budget and hands the remainder to Lambda's retry.
 
-## What isn't here
+## What Isn't Here
 
 API Gateway's REST configuration, the Lambda authorizer's key comparison, the Secrets Manager entries, and the SES identity setup all live in the private repositories. The pieces above are the ones that carry decisions worth explaining rather than steps worth copying.

@@ -1,14 +1,14 @@
 # Security
 
-This started where a lot of solo projects start: a database password in shell history and port 5432 open to the internet. This is the arc from there to here, including the parts I got wrong.
+This started where a lot of solo projects start: a database password sitting in shell history and network rules nobody had audited. This is the arc from there to here, including the parts I got wrong.
 
-## The finding
+## The Finding
 
 An audit of the running infrastructure turned up a database network rule far broader than it should have been — the kind that leaves a login prompt reachable by people who have no business reaching it.
 
 That rule wasn't carelessness, which is what made it interesting. The Lambda functions run **outside** the VPC — the default — so their egress addresses come from unstable shared AWS space with no narrow range to allowlist. Tightening the rule properly means moving the functions into the VPC, which means a NAT gateway and a Secrets Manager endpoint, which means real monthly cost. That's the classic serverless-plus-RDS trap.
 
-## The decision: make the credential worthless, then close the door on a schedule
+## The Decision: Make the Credential Worthless, Then Close the Door on a Schedule
 
 Rather than pay for private networking on day one of a pre-revenue project, the call was to make reaching the port useless first, and treat the networking spend as a triggered upgrade rather than a someday-maybe:
 
@@ -20,7 +20,7 @@ The filter pattern is the detail I'm proudest of: it matches the **two-word suff
 
 And the honest limit, worth stating: **the alarm catches guessing, not theft.** A correct stolen credential logs in silently on the first try. Defense in depth means knowing which layer covers which threat.
 
-## Finishing the job: zero standing credentials
+## Finishing the Job: Zero Standing Credentials
 
 IAM auth covered the Lambda path, but four Next.js routes still connected directly with a password, because they run before a session exists — sign-in and registration can't authenticate through the authenticated API. Worse, the connection string had drifted over time from the least-privilege user to the **administrative** one.
 
@@ -40,7 +40,7 @@ Then the administrative password was deleted from the hosting provider and rotat
 - The first staged attempt failed with `AccessDenied: Not authorized to perform sts:AssumeRoleWithWebIdentity`. The trust policy, the provider, and the permission were all character-perfect. The **role name had a typo**. STS returns the same error for a nonexistent role as for a refused one — deliberately, so you can't enumerate roles — which means that error should send you to diff the ARN before re-reading claims.
 - A rotated password containing `@` and `?` broke the local connection string, because those characters are structural in a URL and the password tail parsed as a hostname. Connection-string passwords are now letters and digits only, at a length where the character pool contributes nothing anyway.
 
-## The rest of the posture
+## The Rest of the Posture
 
 **Rate limiting** as the primary cost control — see [`src/limits.js`](../src/limits.js). The threat model here was never a breach; it was a script burning model tokens.
 
@@ -50,7 +50,7 @@ Then the administrative password was deleted from the hosting provider and rotat
 
 **Registration is timing-safe.** A missing account is hashed against a dummy bcrypt hash so a miss can't be measured as faster than a wrong password, and a taken address and a fresh one leave by the same line with the same status code — closing an enumeration oracle that an earlier version had.
 
-## What a dual-model audit found
+## What a Dual-Model Audit Found
 
 Late in the project, every repository was audited twice — once by me, once by an independent model with no access to my findings — with each finding adversarially verified before it counted. Eighty-eight survived verification and were fixed.
 

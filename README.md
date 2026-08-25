@@ -28,7 +28,7 @@ Built solo over roughly two months: a Next.js frontend on Vercel, AWS Lambda fun
 
 ---
 
-## What it does
+## What It Does
 
 **Capture.** One text box. The model parses a day-dump into discrete work events — description, activity type, optional client, project, and duration — and every draft is editable before it becomes real data. Nothing the model produces enters the system of record without a human confirming it.
 
@@ -76,9 +76,9 @@ The dotted line is the one that took the most work to get right, and it's the fi
 
 ---
 
-## Engineering highlights
+## Engineering Highlights
 
-### 1. No standing database credentials, anywhere
+### 1. No Standing Database Credentials, Anywhere
 
 Four Next.js routes talk to Postgres directly, because they can't go through the authenticated API: sign-in and registration happen *before* a session exists. Originally they used a connection string in an environment variable — a permanent password sitting in a hosting provider's env store, with full rights, usable from anywhere by anyone who obtained it.
 
@@ -104,7 +104,7 @@ Two decisions worth defending:
 
 Full file: [`src/db.ts`](src/db.ts) · Policies: [`aws/`](aws/) · Write-up: [`docs/security.md`](docs/security.md)
 
-### 2. A rate limiter that survives concurrency and serverless
+### 2. A Rate Limiter That Survives Concurrency and Serverless
 
 The realistic threat to this app was never a breach — it was a retry storm or a stolen session burning real money in model tokens. Two design choices carry it:
 
@@ -127,7 +127,7 @@ The attempt is logged **only once it's permitted**, so a blocked user can't exte
 
 Full file: [`src/limits.js`](src/limits.js)
 
-### 3. Prompts treated as versioned, evaluated software
+### 3. Prompts Treated as Versioned, Evaluated Software
 
 This is the part of the project I'd most want to talk about in an interview.
 
@@ -141,7 +141,7 @@ Changes were A/B tested on real inputs, with a second model reviewing anonymized
 
 Write-up: [`docs/prompt-system.md`](docs/prompt-system.md)
 
-### 4. Beating a hard platform ceiling
+### 4. Beating a Hard Platform Ceiling
 
 API Gateway REST caps a request at **29 seconds**, and it is not raisable. Report generation over a long range blew straight through it: 16 entries took about 24 seconds, and at 35 entries the same warm input would sometimes succeed at 26 seconds and sometimes time out — generation variance straddling the wall.
 
@@ -151,7 +151,7 @@ That unlocked a failure mode nobody would guess: at scale the model began hittin
 
 ---
 
-## Selected source
+## Selected Source
 
 | File | Why it's here |
 |---|---|
@@ -166,7 +166,7 @@ Identifiers (AWS account numbers, hostnames, user IDs) are replaced with placeho
 
 ---
 
-## Deeper write-ups
+## Deeper Write-Ups
 
 - [**Architecture**](docs/architecture.md) — request flow, data model, why the boundaries sit where they do
 - [**Security**](docs/security.md) — the arc from an open port and a password in shell history to token-only auth with a live-fire-tested intrusion alarm
@@ -175,7 +175,7 @@ Identifiers (AWS account numbers, hostnames, user IDs) are replaced with placeho
 
 ---
 
-## Decisions I reversed or refused
+## Decisions I Reversed or Refused
 
 Worth including, because the reasoning matters more than the outcome:
 

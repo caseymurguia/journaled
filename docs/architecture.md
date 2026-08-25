@@ -1,6 +1,6 @@
 # Architecture
 
-## The shape
+## The Shape
 
 ```
 Browser
@@ -16,7 +16,7 @@ PostgreSQL 18 on RDS (system of record, encrypted, force_ssl)
 
 Everything runs in one region. Lambdas sit **outside** the VPC deliberately, so calls to Secrets Manager, SES, and the model API work without a NAT gateway — a real monthly cost avoided in exchange for a database gated by network rules, forced TLS, a least-privilege user, and token-only authentication rather than by network isolation alone. Moving the functions into the VPC is a documented, trigger-based upgrade rather than a someday-maybe.
 
-## Why a proxy layer exists at all
+## Why a Proxy Layer Exists at All
 
 The browser never holds the internal API key. Every call from the client goes to a Next.js route handler, which attaches the key server-side and forwards to API Gateway. This is the single most load-bearing boundary in the system, and it's why the frontend is a BFF rather than a pure static client.
 
@@ -26,7 +26,7 @@ The honest scope of that binding, which is easy to over-read: **the signing key 
 
 See [`src/proxy.ts`](../src/proxy.ts) for the implementation and its path-validation guard, which exists because Next.js hands dynamic route segments over **URL-decoded** — an id of `..%2fexport` arrives as `../export` and collapses onto a different upstream endpoint.
 
-## Data model
+## Data Model
 
 **Work events are the system of record.** Everything else derives from them.
 
@@ -46,7 +46,7 @@ Two details that matter more than they look:
 - **`original_summary`** stores the model's first draft and is never updated. User edits write to `summary` only, so the evaluation signal survives every later edit *by construction* rather than by anyone remembering not to clobber it.
 - **Every child table cascades on delete.** Account deletion is one statement against `users`; nine foreign keys clear everything beneath it. Verified against the live schema and destructively tested before shipping.
 
-## Async report generation
+## Async Report Generation
 
 API Gateway REST caps a request at 29 seconds and won't budge. Long-range report generation exceeded it unpredictably, so generation became a job:
 
@@ -59,7 +59,7 @@ GET /summary-job/{id} →  client polls every 3s
 
 The worker re-reads its own row and returns early unless the status is still `pending`, so a duplicate async delivery cannot double-generate. That's idempotency for retry safety — worth distinguishing from request deduplication, which this system deliberately does *not* have.
 
-## Scheduled maintenance
+## Scheduled Maintenance
 
 An EventBridge rule runs a retention sweep daily, after the database backup window. Every window it enforces is derived from an enforcement window elsewhere in the code, plus slack, expressed in **explicit hours** so no timezone or DST arithmetic can silently narrow it.
 
@@ -67,7 +67,7 @@ The operational details are the interesting part: batched deletes by `ctid`, eac
 
 See [`src/retention-sweep.js`](../src/retention-sweep.js).
 
-## The AI layer
+## The AI Layer
 
 One file knows which provider is in use. Business logic calls `parseFreeText`, `generateSummary`, or `generateRangeSummary`; none of them import a provider SDK. Switching providers is a rewrite of a single function and zero changes anywhere else — a boundary that was tested when moving to a different provider was seriously evaluated and ultimately declined for independence reasons.
 
