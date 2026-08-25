@@ -35,16 +35,16 @@ It makes password authentication **impossible** for that user — not discourage
 
 The administrative account still has a password, but nothing at runtime uses it. It exists for break-glass psql sessions only.
 
-## Intrusion detection on an internet-facing database
+## Watching database authentication
 
-The database is publicly routable — the functions run outside the VPC so they can reach Secrets Manager and the model API without a NAT gateway, which means their egress addresses are unstable shared space with no narrow range to allowlist. Rather than pay for private networking on a pre-revenue project, the strategy was to make reaching the port useless (see above) and to watch it.
+Functions run outside the VPC so they can reach Secrets Manager and the model API without a NAT gateway, which means their egress addresses are unstable shared space with no narrow range to allowlist. Private networking is a real cost, so it's a triggered upgrade — and in the meantime, authentication failures are monitored.
 
 Postgres logs stream to CloudWatch, and a metric filter feeds an alarm:
 
 ```
 Filter pattern:  "authentication failed"
 Metric:          DBAuthFailures (namespace: Journaled)
-Alarm:           Sum ≥ 5 over 5 minutes → SNS → email
+Alarm:           Sum over a short window → SNS → email
 Missing data:    notBreaching   (a quiet log is a healthy log)
 ```
 
@@ -52,7 +52,7 @@ Two details that took thought:
 
 **The pattern matches the two-word suffix, not the whole message.** Postgres emits `password authentication failed` for password attempts and `PAM authentication failed` for IAM token attempts. Matching only the first would have left the IAM door unwatched — an attacker's *choice of door* would have decided whether the alarm fired.
 
-**Five in five minutes, not one.** A lone internet scanner knocking once stays under the threshold; anything systematic crosses it. The whole pipe was verified end to end with six deliberate bad logins — log line to filter to metric to alarm to inbox — because an alarm nobody has ever seen fire is a hypothesis, not a control.
+**The threshold is tuned so noise doesn't cry wolf and patterns can't hide.** A stray failure shouldn't page anyone; anything systematic should. The whole pipe was verified end to end with deliberate bad logins — log line to filter to metric to alarm to inbox — because an alarm nobody has ever seen fire is a hypothesis, not a control.
 
 ## Scheduled maintenance
 

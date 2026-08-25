@@ -7,14 +7,14 @@ Browser
    ↓  session cookie only — never the internal key
 Vercel (Next.js pages + route-handler proxies)
    ↓  x-internal-key + x-user-id + HMAC assertion, server-to-server
-API Gateway (REST, TLS 1.3, throttled 50 rps / 100 burst)
+API Gateway (REST, TLS 1.3, throttled)
    ↓  Lambda authorizer: timing-safe key compare, fails closed
 AWS Lambda (Node 22, outside the VPC — business logic)
    ↓  IAM auth, 15-minute tokens, least-privilege database user
 PostgreSQL 18 on RDS (system of record, encrypted, force_ssl)
 ```
 
-Everything runs in one region. Lambdas sit **outside** the VPC deliberately, so calls to Secrets Manager, SES, and the model API work without a NAT gateway — a real monthly cost avoided in exchange for keeping RDS publicly routable but tightly gated (security group, forced TLS, least-privilege user, token-only auth). Moving the functions into the VPC is a documented, trigger-based upgrade rather than a someday-maybe.
+Everything runs in one region. Lambdas sit **outside** the VPC deliberately, so calls to Secrets Manager, SES, and the model API work without a NAT gateway — a real monthly cost avoided in exchange for a database gated by network rules, forced TLS, a least-privilege user, and token-only authentication rather than by network isolation alone. Moving the functions into the VPC is a documented, trigger-based upgrade rather than a someday-maybe.
 
 ## Why a proxy layer exists at all
 

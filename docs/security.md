@@ -4,17 +4,17 @@ This started where a lot of solo projects start: a database password in shell hi
 
 ## The finding
 
-An audit of the running infrastructure turned up two things at once: RDS was publicly accessible, and its security group allowed Postgres from `0.0.0.0/0`. The whole internet could reach the login prompt.
+An audit of the running infrastructure turned up a database network rule far broader than it should have been — the kind that leaves a login prompt reachable by people who have no business reaching it.
 
-That rule wasn't carelessness, which is what made it interesting. The Lambda functions run **outside** the VPC — the default — so their egress addresses come from unstable shared AWS space with no narrow range to allowlist. Closing the port properly means moving the functions into the VPC, which means a NAT gateway and a Secrets Manager endpoint, which means real monthly cost. That's the classic serverless-plus-RDS trap.
+That rule wasn't carelessness, which is what made it interesting. The Lambda functions run **outside** the VPC — the default — so their egress addresses come from unstable shared AWS space with no narrow range to allowlist. Tightening the rule properly means moving the functions into the VPC, which means a NAT gateway and a Secrets Manager endpoint, which means real monthly cost. That's the classic serverless-plus-RDS trap.
 
-## The decision: make the credential worthless instead of closing the door
+## The decision: make the credential worthless, then close the door on a schedule
 
-Rather than pay for private networking on a pre-revenue project, the call was to make the open port useless to anyone reaching it:
+Rather than pay for private networking on day one of a pre-revenue project, the call was to make reaching the port useless first, and treat the networking spend as a triggered upgrade rather than a someday-maybe:
 
 1. **IAM database authentication.** The application database user was granted `rds_iam`, which makes password login *impossible* for that user — it accepts only short-lived, AWS-signed tokens. There is no password to steal.
 2. **Forced TLS.** `rds.force_ssl = 1`, with the RDS CA bundled and certificate verification on, so plaintext connections are refused outright.
-3. **An intrusion tripwire, live-fire tested.** Postgres logs already streamed to CloudWatch, so a metric filter on `"authentication failed"` feeds an alarm at five failures in five minutes, wired to email.
+3. **An intrusion tripwire, live-fire tested.** Postgres logs already streamed to CloudWatch, so a metric filter on `"authentication failed"` feeds an alarm wired to email.
 
 The filter pattern is the detail I'm proudest of: it matches the **two-word suffix**, not the full message, so it catches both `password authentication failed` *and* `PAM authentication failed`. IAM token failures route through PAM — matching only the password variant would have left a door the alarm couldn't see. It was verified end to end with six deliberate bad logins: log → filter → metric → alarm → inbox.
 

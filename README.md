@@ -4,7 +4,7 @@
 
 You type what you did today the way you'd say it out loud — *"fixed the printer thing at Northgate, 2h on the Meridian migration, standup, Acme called about the invoice"* — and Journaled parses it into discrete, queryable work events, writes the day's account in your own voice, and turns any date range into a report you can send to a manager or attach to an invoice.
 
-Built solo over roughly two months: a Next.js frontend on Vercel, 17 AWS Lambda functions behind API Gateway, PostgreSQL on RDS, and Claude Sonnet 5 behind a provider-agnostic service layer.
+Built solo over roughly two months: a Next.js frontend on Vercel, AWS Lambda functions behind API Gateway, PostgreSQL on RDS, and Claude Sonnet 5 behind a provider-agnostic service layer.
 
 > **This repository is a curated showcase**, not the full source. It holds the architecture write-ups and a handful of files chosen because they carry the interesting decisions. The production repositories are private.
 
@@ -48,9 +48,9 @@ The product constraint that shaped every prompt in the system: **the model may n
 flowchart TD
     B["Browser<br/><i>session cookie only — never the internal key</i>"]
     V["Vercel · Next.js<br/>pages + route-handler proxies"]
-    G["API Gateway REST<br/><i>TLS 1.3 · 50 rps / 100 burst</i>"]
+    G["API Gateway REST<br/><i>TLS 1.3 · throttled</i>"]
     A["Lambda authorizer<br/><i>timing-safe compare · fails closed</i>"]
-    L["17 Lambda functions<br/><i>Node 22 · business logic</i>"]
+    L["Lambda functions<br/><i>Node 22 · business logic</i>"]
     AI["lib/ai.js<br/><i>the only file that knows the provider</i>"]
     C["Anthropic API<br/><i>Claude Sonnet 5</i>"]
     D[("PostgreSQL 18 · RDS<br/><i>encrypted · force_ssl</i>")]
