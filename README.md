@@ -6,6 +6,8 @@ You type what you did today the way you'd say it out loud — *"fixed the printe
 
 Built solo over roughly two months: a Next.js frontend on Vercel, AWS Lambda functions behind API Gateway, PostgreSQL on RDS, and Claude Sonnet 5 behind a provider-agnostic service layer.
 
+**Live at [journaled.io](https://journaled.io)** — there's a demo on the homepage that runs the real parser and summarizer with no account and nothing stored. The app itself is at [app.journaled.io](https://app.journaled.io).
+
 > **This repository is a curated showcase**, not the full source. It holds the architecture write-ups and a handful of files chosen because they carry the interesting decisions. The production repositories are private.
 
 ---

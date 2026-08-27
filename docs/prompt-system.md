@@ -2,6 +2,8 @@
 
 Four jobs, one shared foundation, and a rule that governs all of it: **the model may never invent work.**
 
+(The parser and the daily summarizer are both runnable without an account, via the demo on [journaled.io](https://journaled.io) — the prompts described here are the ones it uses.)
+
 Three of those jobs write. The fourth *edits* — and its correctness is a claim about what it did **not** change, which turned out to be a harder thing to specify than any of the writing.
 
 That isn't a style preference. The output of this product goes to someone's manager, or attaches to an invoice. A tool that gets caught embellishing once is finished — so "don't fabricate" had to be enforced at the prompt level, repeatedly, in the specific ways models actually drift.
