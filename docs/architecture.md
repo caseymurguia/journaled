@@ -69,6 +69,6 @@ See [`src/retention-sweep.js`](../src/retention-sweep.js).
 
 ## The AI Layer
 
-One file knows which provider is in use. Business logic calls `parseFreeText`, `generateSummary`, or `generateRangeSummary`; none of them import a provider SDK. Switching providers is a rewrite of a single function and zero changes anywhere else — a boundary that was tested when moving to a different provider was seriously evaluated and ultimately declined for independence reasons.
+One file knows which provider is in use. Business logic calls `parseFreeText`, `generateSummary`, `generateRangeSummary`, or `refineSummary`; none of them import a provider SDK. Switching providers is a rewrite of a single function and zero changes anywhere else — a boundary that was tested when moving to a different provider was seriously evaluated and ultimately declined for independence reasons.
 
 Prompts live in that same file, versioned in git, composed from a shared `CORE` block plus a mode-specific block. See [prompt-system.md](prompt-system.md).

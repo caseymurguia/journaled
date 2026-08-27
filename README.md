@@ -36,6 +36,8 @@ Built solo over roughly two months: a Next.js frontend on Vercel, AWS Lambda fun
 
 **Report.** Any range up to 90 days becomes a narrative report assembled from every session in the window — generated asynchronously, because the interesting version of this problem doesn't fit inside an API Gateway request.
 
+**Refine.** *(Paid tier.)* Any summary or report can be revised by instruction — *"make it shorter," "lead with the client work."* The revision is staged, not applied: you read it in place and accept it, or discard it. Every sentence the instruction doesn't touch comes back verbatim, and anything the entries can't support is declined in a note rather than quietly invented.
+
 **Prove.** Everything exports to CSV or JSON with durations intact, for invoices, timesheets, or review evidence.
 
 The product constraint that shaped every prompt in the system: **the model may never invent work.** It structures, groups, and renders what the person actually wrote. It never estimates a duration the user's words don't support, never adds an outcome the entries don't establish, and never grades the day. A tool whose output goes to your manager or your client cannot be caught embellishing, once.
@@ -138,6 +140,10 @@ Changes were A/B tested on real inputs, with a second model reviewing anonymized
 **Voice rules don't survive translation.** The English prompts taught first-person voice through English surface patterns — "does it use I/my?" That test is *vacuously true* in Spanish, a pro-drop language where correct sentences omit the subject pronoun entirely. Running the shared prompt on Spanish input produced invented teams ("hicimos el standup con el equipo") in six out of six runs. The fix wasn't translation; it was a forked prompt with native exemplars, teaching the same rule through Spanish surface patterns.
 
 **The prompt's own examples teach the failure.** The single most stubborn defect — summaries narrating how long things took, which three separate rules forbade — traced back to a *positive* example inside the prompt that demonstrated the banned phrasing while illustrating something else. The model was following the example over the rule, correctly.
+
+**Editing is a harder prompt problem than writing.** The newest mode takes an instruction and revises an existing summary, which makes its correctness a claim about what it did *not* change: every untouched sentence must come back verbatim, including sentences that violate the prompt's own rules, because the person already accepted them. It also needed a JSON envelope to carry its decline notes — and a format contract can't be written into a `CORE` block that three other modes depend on. That forced the one architectural exception in the system: a single block allowed to compose *after* `CORE`, carrying a precedence override that names each rule it turns off rather than claiming general priority.
+
+**How it was verified is the part I'd defend hardest.** Three independent audits — my own, a multi-agent pass with separate prompt/backend/frontend lenses, and a second model run cold on a neutral prompt — reconciled with attribution rather than merged. Then a nineteen-agent adversarial pass over the resulting *fixes*, each finding handed to a verifier told to refute it. Ten of fifteen claims died there. The survivors included one real hole the first fix pass had left open: of five ways to exit a modal, four had been locked against discarding unsaved work and the fifth — the one that navigates away — had been missed. Auditing the code is not the same as auditing the fix, and the second pass is where a careful first pass still leaks.
 
 Write-up: [`docs/prompt-system.md`](docs/prompt-system.md)
 
