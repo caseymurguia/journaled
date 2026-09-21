@@ -1,4 +1,10 @@
 const { getDb } = require('./lib/db');
+const { resetDemo } = require('./lib/demo-seed');
+const {
+  CloudWatchLogsClient,
+  DescribeLogGroupsCommand,
+  PutRetentionPolicyCommand,
+} = require('@aws-sdk/client-cloudwatch-logs');
 
 // retention-sweep — the scheduled prune the privacy policy has been waiting
 // for. Until this existed, every rate-limit and usage row lived forever: the
@@ -25,6 +31,17 @@ const { getDb } = require('./lib/db');
 //                      previously retained forever (audit finding). saved
 //                      rows are journal content and are NEVER touched here.
 //
+// THE SIXTH SWEEP IS NOT A TABLE. The policy's log clause is universal —
+// "Operational logs expire after 30 days. Every log group carries that
+// retention policy." — and AWS creates every new log group with NO expiry, so
+// the sentence goes false the moment a Lambda is born and nothing anywhere
+// says so. It happened: journaled-refine's group sat unbounded from creation
+// until it was noticed by hand. A promise that depends on remembering a
+// console step is a promise that breaks, so the job that exists to make the
+// retention clauses true now enforces that one too — self-healing, at most a
+// day of exposure, instead of forever. Logs matter here for the same reason
+// rows do: error text can carry fragments of a person's work.
+//
 // OPERATIONAL SHAPE (per pre-deploy review):
 // - Created with --timeout 900 and reserved concurrency 1, so a scheduled run
 //   and an async retry can never overlap and contend for the same batches.
@@ -46,6 +63,9 @@ const { getDb } = require('./lib/db');
 
 const BATCH = 5000;
 const STOP_WITH_MS_LEFT = 20000;
+// The number the privacy policy commits to for operational logs. Changing it
+// here without changing Section 7 makes the policy false; they move together.
+const LOG_RETENTION_DAYS = 30;
 
 const SWEEPS = [
   { table: 'demo_events',      predicate: `created_at < now() - interval '48 hours'` },
@@ -54,6 +74,34 @@ const SWEEPS = [
   { table: 'email_tokens',     predicate: `expires_at < now() - interval '168 hours'` },
   { table: 'summary_jobs',     predicate: `saved = false AND created_at < now() - interval '840 hours'` },
 ];
+
+// Bring every log group up to the policy's ceiling. Sets retention when a
+// group has NONE (the AWS default for a newly created group) or when it is
+// LONGER than promised. A shorter retention is left alone: it keeps less than
+// the policy allows, which breaks nothing, and overwriting it would stomp a
+// deliberate choice. Paginated because DescribeLogGroups is.
+async function sweepLogRetention() {
+  const logs = new CloudWatchLogsClient({});
+  const fixed = [];
+  let nextToken;
+  do {
+    const page = await logs.send(new DescribeLogGroupsCommand({ nextToken }));
+    for (const g of page.logGroups || []) {
+      const current = g.retentionInDays;
+      if (current == null || current > LOG_RETENTION_DAYS) {
+        await logs.send(
+          new PutRetentionPolicyCommand({
+            logGroupName: g.logGroupName,
+            retentionInDays: LOG_RETENTION_DAYS,
+          })
+        );
+        fixed.push(`${g.logGroupName} (was ${current == null ? 'never' : current + 'd'})`);
+      }
+    }
+    nextToken = page.nextToken;
+  } while (nextToken);
+  return fixed;
+}
 
 exports.handler = async (event, context) => {
   const db = await getDb();
@@ -81,5 +129,45 @@ exports.handler = async (event, context) => {
     results[table] = total;
   }
   console.log('retention-sweep:', JSON.stringify(results));
+
+  // DEMO RESET (Sep 21). The shared demo@journaled.io account is wiped and
+  // re-seeded here, on the same nightly schedule, because this is the one
+  // function that already runs unattended against the journal tables. It
+  // sits AFTER the sweeps (so a slow reset can't starve them of the time
+  // budget) and BEFORE the log-retention step (which is allowed to throw and
+  // must not take the reset down with it). Its own failure is CAUGHT and
+  // logged rather than thrown: an un-reset demo account is a cosmetic
+  // problem for tomorrow's visitor, not a policy breach, and it must never
+  // trip the errors alarm that exists for the retention promises above.
+  // resetDemo is transactional — a failure leaves yesterday's fixture
+  // intact, never an empty account. Seeded summaries carry a NULL
+  // prompt_version on purpose: a human wrote them, no model did, and the
+  // provenance column should say so. See lib/demo-seed.js.
+  try {
+    const demo = await resetDemo(db);
+    results.demo_reset = demo.present ? demo : 'absent';
+    console.log('retention-sweep: demo reset', JSON.stringify(demo));
+  } catch (e) {
+    results.demo_reset = 'failed';
+    console.error('retention-sweep: demo reset FAILED (journal left as-is):', e.message);
+  }
+
+  // LAST, and after the row results are already logged: a CloudWatch failure
+  // must never cost us the record of the database work that succeeded. This is
+  // deliberately allowed to THROW — a persistent failure here trips the
+  // journaled-retention-sweep-errors alarm, which is the whole point. Lambda's
+  // async retry re-runs the sweeps above, which is safe: they are idempotent
+  // and the second pass finds nothing left to delete.
+  const fixedGroups = await sweepLogRetention();
+  if (fixedGroups.length) {
+    // WARN, not log: a group needing this means something was created without
+    // its retention set, and the policy was briefly false. Worth seeing.
+    console.warn(
+      `retention-sweep: set ${LOG_RETENTION_DAYS}d retention on ${fixedGroups.length} log group(s): ${fixedGroups.join(', ')}`
+    );
+  }
+  results.log_groups_fixed = fixedGroups.length;
+
+  console.log('retention-sweep complete:', JSON.stringify(results));
   return results;
 };

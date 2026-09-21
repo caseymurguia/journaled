@@ -8,6 +8,16 @@ Built solo over roughly two months: a Next.js frontend on Vercel, AWS Lambda fun
 
 **Live at [journaled.io](https://journaled.io)** — there's a demo on the homepage that runs the real parser and summarizer with no account and nothing stored. The app itself is at [app.journaled.io](https://app.journaled.io).
 
+### Try the full app
+
+A shared demo account is signed in with a password, no signup:
+
+> **[app.journaled.io](https://app.journaled.io/signin)** · `demo@journaled.io` · `journaled-demo`
+
+It comes pre-loaded with three weeks of fictional freelance work across two clients, with daily summaries and a saved weekly report, and every paid feature is on — including Refine. Capture something, generate a report, try revising a summary by instruction.
+
+It's a shared account, so a few things are true of it that aren't true of a real one: **it resets every night** to the same fixture, it runs on its own small daily limits so one visitor can't spend the budget for everyone, and it can't be deleted, renamed, or have its password reset. The guards behind each of those are in the [rate limiter](src/limits.js) and the retention sweep. Nothing you type there is private — treat it like a whiteboard in a lobby.
+
 > **This repository is a curated showcase**, not the full source. It holds the architecture write-ups and a handful of files chosen because they carry the interesting decisions. The production repositories are private.
 
 ---
