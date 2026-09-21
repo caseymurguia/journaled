@@ -10,9 +10,12 @@ Built solo over roughly two months: a Next.js frontend on Vercel, AWS Lambda fun
 
 ### Try the full app
 
-A shared demo account is signed in with a password, no signup:
+There's a shared demo account — no signup needed. Sign in at **[app.journaled.io](https://app.journaled.io/signin)** with:
 
-> **[app.journaled.io](https://app.journaled.io/signin)** · `demo@journaled.io` · `journaled-demo`
+| | |
+|---|---|
+| **Email** | `demo@journaled.io` |
+| **Password** | `journaled-demo` |
 
 It comes pre-loaded with three weeks of fictional freelance work across two clients, with daily summaries and a saved weekly report, and every paid feature is on — including Refine. Capture something, generate a report, try revising a summary by instruction.
 
